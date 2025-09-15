@@ -43,7 +43,7 @@ uv add strands-agents strands-agents-tools
 
 使用虚拟环境的好处是运行当前代码所需要的各种依赖库版本的安装和配置将完全不会影响其他代码，避免了当前测试安装升级依赖库后，其他现有Python代码无法运行的问题。因此如果在本机上开发多个Python代码，使用虚拟环境是最佳实践。
 
-### 2、演示代码
+### 2、调用Strands Agent内置Tool的代码
 
 编辑如下一段代码，保存为`internal-tool.py`，稍后运行之。
 
@@ -107,9 +107,49 @@ Strands Agents内置了一系列现成的Tool，可开箱即用。他们包括�
 
 如果以上Tool不能满足需求，则可以自行开发更多工具。
 
-### 4、调用外部Tool
+### 4、调用外部Tool的代码
 
+编写`external-tool.py`，代码如下。
 
+```python
+from strands import Agent
+from strands.tools.mcp import MCPClient
+from strands.models import BedrockModel
+from mcp import stdio_client, StdioServerParameters
+
+# Define a naming-focused system prompt
+NAMING_SYSTEM_PROMPT = """
+你是一个域名起名和查询助手。我现在计划使用.com或者.net的域名。
+
+现在为我选择5个和AI智能化相关的域名，用你的工具查询域名是否可用，如果可用的域名请告诉我，否则继续帮我想新的域名，直到找到5个可用的域名为止。
+"""
+
+# Load an MCP server that can determine if a domain name is available
+domain_name_tools = MCPClient(lambda: stdio_client(
+    StdioServerParameters(command="uvx", args=["fastdomaincheck-mcp-server"])
+))
+
+bedrock_model = BedrockModel(
+    model_id="us.anthropic.claude-sonnet-4-20250514-v1:0",
+    region_name="us-west-2"
+)
+
+with domain_name_tools:
+    # Define the naming agent with tools and a system prompt
+    tools = domain_name_tools.list_tools_sync()
+    naming_agent = Agent(
+        model=bedrock_model,
+        system_prompt=NAMING_SYSTEM_PROMPT,
+        tools=tools
+    )
+
+    # Run the naming agent with the end user's prompt
+    naming_agent("I need to name an open source project for building AI agents.")
+```
+
+运行这段代码`python external-tool.py`，这个AI Agent将会为您选择5个域名，然后查询其是否被注册（fastdomaincheck-mcp-server这个MCP Server是通过whois查询），然后再查找下一批。如此Agent会多次调用MCP Server和LLM模型，直到满足5个可用的条件位置。
+
+由此案例可以看到，Strands Agents大大降低了开发难度，Agent可快速与模型和外部工具交互，满足业务要求。
 
 ### 5、注意事项
 
@@ -145,6 +185,7 @@ uv add strands-agents strands-agents-tools
 from mcp import stdio_client, StdioServerParameters
 from strands import Agent
 from strands.tools.mcp import MCPClient
+from strands.models import BedrockModel
 
 stdio_mcp_client = MCPClient(lambda: stdio_client(
     StdioServerParameters(
@@ -155,11 +196,23 @@ stdio_mcp_client = MCPClient(lambda: stdio_client(
     )
 ))
 
+bedrock_model = BedrockModel(
+    model_id="us.anthropic.claude-sonnet-4-20250514-v1:0",
+    region_name="us-west-2"
+)
+
+# Create an agent with MCP tools
 with stdio_mcp_client:
+    # Get the tools from the MCP server
     tools = stdio_mcp_client.list_tools_sync()
 
-    agent = Agent(tools=tools)
-    agent("西雅图天气怎么样？")  
+    # Create an agent with these tools
+    agent = Agent(
+        model=bedrock_model,
+        tools=tools
+        )
+    
+    agent("西雅图天气怎么样？")  # Example query about Seattle weather
 ```
 
 在以上命令中，可以看到使用Strands Agents构建MCP Client，使得开发编程大为简化，只需要简单几行代码，即可构建一个AI Agent，这个AI Agent会使用stdio方式加载本地的MCP Server，并完成与MCP Server的通信。
@@ -213,7 +266,90 @@ Tool #1: get_forecast
 
 ### 2、使用SSE访问网络MCP Server
 
+以上例子是通过stdio方式加载的应用，现在我们将相同的代码修改为使用Streamable HTTP协议方式。
 
+执行如下命令运行代码：
+
+```shell
+python mcp-server-http.py
+```
+
+此时可看到程序监听在本机的8002端口。
+
+```shell
+INFO:     Started server process [30789]
+INFO:     Waiting for application startup.
+[09/15/25 23:15:17] INFO     StreamableHTTP session manager started                  streamable_http_manager.py:110
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8002 (Press CTRL+C to quit)
+```
+
+现在使用Strands Agents编写一个调用HTTP协议的Client。将如下代码保存为`mcp-client-http.py`。内容如下。
+
+```python
+import os
+
+from mcp.client.streamable_http import streamablehttp_client
+from strands import Agent
+from strands.tools.mcp import MCPClient
+from strands.models import BedrockModel
+
+MCP_SERVER_URL = os.environ.get("MY_MCP_SERVER_URL", "http://localhost:8002/mcp/")
+
+myhttp_mcp_client = MCPClient(lambda: streamablehttp_client(MCP_SERVER_URL))
+
+bedrock_model = BedrockModel(
+    model_id="us.anthropic.claude-sonnet-4-20250514-v1:0",
+    region_name="us-west-2"
+)
+
+# Create an agent with MCP tools
+with myhttp_mcp_client:
+    # Get the tools from the MCP server
+    tools = myhttp_mcp_client.list_tools_sync()
+
+    # Create an agent with these tools
+    agent = Agent(
+        model=bedrock_model,
+        tools=tools
+        )
+    
+    agent("西雅图天气怎么样？")  # Example query about Seattle weather
+```
+
+以上这段代码与之前调用stdio的代码相比，可看到仅在初始化MCP Client的位置稍有不同，其他业务逻辑一样。
+
+然后打开另一个终端，进入`02-mcp-client`目录。首先加载uv的venv环境，然后执行代码。
+
+```shell
+source .venv/bin/activate
+python mcp-client-http.py
+```
+
+即可看到本Agent正常访问了MCP Server，完成了交互逻辑。如果将控制台窗口切换到刚才启动MCP Server的命令行窗口中，还可以看到如下日志：
+
+```shell
+INFO:     127.0.0.1:61740 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:61740 - "POST /mcp HTTP/1.1" 200 OK
+[09/15/25 23:22:30] INFO     Terminating session: None                                                                     streamable_http.py:630
+INFO:     127.0.0.1:61742 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:61742 - "POST /mcp HTTP/1.1" 202 Accepted
+                    INFO     Terminating session: None                                                                     streamable_http.py:630
+INFO:     127.0.0.1:61744 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:61744 - "POST /mcp HTTP/1.1" 200 OK
+                    INFO     Processing request of type ListToolsRequest                                                            server.py:625
+                    INFO     Terminating session: None                                                                     streamable_http.py:630
+INFO:     127.0.0.1:61764 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:61764 - "POST /mcp HTTP/1.1" 200 OK
+[09/15/25 23:22:34] INFO     Processing request of type CallToolRequest                                                             server.py:625
+                    INFO     HTTP Request: GET https://api.weather.gov/points/47.6062,-122.3321 "HTTP/1.1 200 OK"                 _client.py:1740
+[09/15/25 23:22:35] INFO     HTTP Request: GET https://api.weather.gov/gridpoints/SEW/125,68/forecast "HTTP/1.1 200 OK"           _client.py:1740
+                    INFO     Terminating session: None                                                                     streamable_http.py:630
+```
+
+通过日志可以看到，由Strands Agents构建的MCP Client正常链接到了MCP Server，并且完成了调用。
+
+以上例子展示了构建Agent与MCP Server交互的过程。
 
 ## 四、构建Agent-to-Agent（A2A）
 

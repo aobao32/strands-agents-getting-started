@@ -1,16 +1,13 @@
-from mcp import stdio_client, StdioServerParameters
+import os
+
+from mcp.client.streamable_http import streamablehttp_client
 from strands import Agent
 from strands.tools.mcp import MCPClient
 from strands.models import BedrockModel
 
-stdio_mcp_client = MCPClient(lambda: stdio_client(
-    StdioServerParameters(
-        command="uv", 
-        args=["run", "mcp-server-stdio.py"],
-        transport="stdio",
-        wait=True
-    )
-))
+MCP_SERVER_URL = os.environ.get("MY_MCP_SERVER_URL", "http://localhost:8002/mcp/")
+
+myhttp_mcp_client = MCPClient(lambda: streamablehttp_client(MCP_SERVER_URL))
 
 bedrock_model = BedrockModel(
     model_id="us.anthropic.claude-sonnet-4-20250514-v1:0",
@@ -18,9 +15,9 @@ bedrock_model = BedrockModel(
 )
 
 # Create an agent with MCP tools
-with stdio_mcp_client:
+with myhttp_mcp_client:
     # Get the tools from the MCP server
-    tools = stdio_mcp_client.list_tools_sync()
+    tools = myhttp_mcp_client.list_tools_sync()
 
     # Create an agent with these tools
     agent = Agent(
