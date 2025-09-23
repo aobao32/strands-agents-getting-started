@@ -530,10 +530,21 @@ Quantum computers are specialized problem-solving machines designed to complemen
 
 ## 五、小结-设计思路
 
-以上三种模式的Agent交互方式各有特点，适用于不同的场景。
+以上三种模式的Agent交互方式各有特点，适用于不同的场景。再加上本文的上一篇中介绍的Agent as Tool，在A2A交互中共有四种编排模式。它们分别适合：
+
+- Agent as Tool：只启动单一Agent，对外与人类交互体现为唯一的Agent，内部由几个Agent封装为Tool。是否调用到Tool、调用顺序、调用逻辑，由与人类交互的Agent决定
+- Agent Swarms：启动多个Agent，松散的编排，Swarm允许它们之间互相协作，协作的机制和原理由接受人类请求作为入口的Agent来协调
+- Agent Graphs：像图结构一样的分支，由多条路径，每条路径是预先定义的，最终合并处理结果
+- Agent Workflows：人为定义一个Workflow，多个Agent在特定位置依次处理，输入和输出都是明确任务导向
+
+随着生成式AI的发展，未来还会有新的技术和架构诞生，持续关注，Stay tuned。
 
 ## 六、参考资料
 
 Multi-agent Design Patterns¶
 
 [https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/multi-agent-patterns/](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/multi-agent-patterns/)
+
+Strands Agents Python SDK - Examples Overview
+
+[https://github.com/strands-agents/docs/tree/main/docs/examples](https://github.com/strands-agents/docs/tree/main/docs/examples)
