@@ -281,7 +281,256 @@ Execution order: ['research', 'fact_check', 'analysis', 'report']
 
 ## 四、Workflow模式
 
+Workflow模式是针对复杂任务场景进行人工编排、对执行顺序有特别要求的场景。使用Strands Agents开发Workflow模式的Agent交互非常简单，无须人为的转发、传递参数，而是通过预设一个工作流即可完成。
+
+首先初始化环境。
+
+```shell
+uv init 08-workflow
+cd 08-workflow
+uv venv
+source .venv/bin/activate
+uv add strands-agents strands-agents-tools
+```
+
+将如下代码保存为`workflow.py`。内容如下。
+
+```python
+#!/usr/bin/env python3
+"""
+# Agentic Workflow: Research Assistant
+
+This example demonstrates an agentic workflow using Strands agents with web research capabilities.
+
+## Key Features
+- Specialized agent roles working in sequence
+- Direct passing of information between workflow stages
+- Web research using http_request and retrieve tools
+- Fact-checking and information synthesis
+
+## How to Run
+1. Navigate to the example directory
+2. Run: python research_assistant.py
+3. Enter queries or claims at the prompt
+
+## Example Queries
+- "Thomas Edison invented the light bulb"
+- "Tuesday comes before Monday in the week"
+
+## Workflow Process
+1. Researcher Agent: Gathers web information using multiple tools
+2. Analyst Agent: Verifies facts and synthesizes findings
+3. Writer Agent: Creates final report
+"""
+
+from strands import Agent
+from strands_tools import http_request
+from strands.models import BedrockModel
+
+# 指定使用Amazon Bedrock上的特定模型版本、使用特定AWS Region
+bedrock_model = BedrockModel(
+    model_id="us.anthropic.claude-sonnet-4-20250514-v1:0",
+    region_name="us-west-2"
+)
+
+def run_research_workflow(user_input):
+    """
+    Run a three-agent workflow for research and fact-checking with web sources.
+    Shows progress logs during execution but presents only the final report to the user.
+    
+    Args:
+        user_input: Research query or claim to verify
+        
+    Returns:
+        str: The final report from the Writer Agent
+    """
+    
+    print(f"\nProcessing: '{user_input}'")
+    
+    # Step 1: Researcher Agent with enhanced web capabilities
+    print("\nStep 1: Researcher Agent gathering web information...")
+    
+    researcher_agent = Agent(
+        system_prompt=(
+            "You are a Researcher Agent that gathers information from the web. "
+            "1. Determine if the input is a research query or factual claim "
+            "2. Use your research tools (http_request, retrieve) to find relevant information "
+            "3. Include source URLs and keep findings under 500 words"
+        ),
+        model=bedrock_model,
+        callback_handler=None,
+        tools=[http_request]
+    )
+    
+    researcher_response = researcher_agent(
+        f"Research: '{user_input}'. Use your available tools to gather information from reliable sources. "
+        f"Focus on being concise and thorough, but limit web requests to 1-2 sources.",
+    )
+    
+    # Extract only the relevant content from the researcher response
+    research_findings = str(researcher_response)
+    
+    print("Research complete")
+    print("Passing research findings to Analyst Agent...\n")
+    
+    # Step 2: Analyst Agent to verify facts
+    print("Step 2: Analyst Agent analyzing findings...")
+    
+    analyst_agent = Agent(
+        system_prompt=(
+            "You are an Analyst Agent that verifies information. "
+            "1. For factual claims: Rate accuracy from 1-5 and correct if needed "
+            "2. For research queries: Identify 3-5 key insights "
+            "3. Evaluate source reliability and keep analysis under 400 words"
+        ),
+        model=bedrock_model,
+        callback_handler=None
+    )
+
+    analyst_response = analyst_agent(
+        f"Analyze these findings about '{user_input}':\n\n{research_findings}",
+    )
+    
+    # Extract only the relevant content from the analyst response
+    analysis = str(analyst_response)
+    
+    print("Analysis complete")
+    print("Passing analysis to Writer Agent...\n")
+    
+    # Step 3: Writer Agent to create report
+    print("Step 3: Writer Agent creating final report...")
+    
+    writer_agent = Agent(
+        system_prompt=(
+            "You are a Writer Agent that creates clear reports. "
+            "1. For fact-checks: State whether claims are true or false "
+            "2. For research: Present key insights in a logical structure "
+            "3. Keep reports under 500 words with brief source mentions"
+        ),
+        model=bedrock_model
+    )
+    
+    # Execute the Writer Agent with the analysis (output is shown to user)
+    final_report = writer_agent(
+        f"Create a report on '{user_input}' based on this analysis:\n\n{analysis}"
+    )
+    
+    print("Report creation complete")
+    
+    # Return the final report
+    return final_report
+
+
+if __name__ == "__main__":
+    # Print welcome message
+    print("\nAgentic Workflow: Research Assistant\n")
+    print("This demo shows Strands agents in a workflow with web research.")
+    print("Try research questions or fact-check claims.")
+    print("\nExamples:")
+    print("- \"What are quantum computers?\"")
+    print("- \"Lemon cures cancer\"")
+    print("- \"Tuesday comes before Monday in the week\"")
+    
+    # Interactive loop
+    while True:
+        try:
+            user_input = input("\n> ")
+            if user_input.lower() == "exit":
+                print("\nGoodbye!")
+                break
+            
+            # Process the input through the workflow of agents
+            final_report = run_research_workflow(user_input)
+        except KeyboardInterrupt:
+            print("\n\nExecution interrupted. Exiting...")
+            break
+        except Exception as e:
+            print(f"\nAn error occurred: {str(e)}")
+            print("Please try a different request.")
+```
+
+运行这个脚本。
+
+```shell
+python workflow.py
+```
+
+注意：首次运行这个代码，可能会看到运行中提示npm升级软件包的提示，这是因为Strands Agents调用了`http_request`这个tool来链接外部互联网，而这个tool是nodejs开发的，因此第一次运行会自动安装对应的库文件，console上可能会提示有npm软件包被安装。
+
+运行后的返回结果如下：
+
+```shell
+Agentic Workflow: Research Assistant
+
+This demo shows Strands agents in a workflow with web research.
+Try research questions or fact-check claims.
+
+Examples:
+- "What are quantum computers?"
+- "Lemon cures cancer"
+- "Tuesday comes before Monday in the week"
+
+> What are quantum computers
+
+Processing: 'What are quantum computers'
+
+Step 1: Researcher Agent gathering web information...
+Research complete
+Passing research findings to Analyst Agent...
+
+Step 2: Analyst Agent analyzing findings...
+Analysis complete
+Passing analysis to Writer Agent...
+
+Step 3: Writer Agent creating final report...
+# What Are Quantum Computers? Research Report
+
+## Executive Summary
+Based on comprehensive analysis, quantum computers represent a revolutionary computing paradigm that harnesses quantum mechanical phenomena to solve specific complex problems far more efficiently than classical computers.
+
+## Core Technology Foundation
+Quantum computers operate on four fundamental quantum principles:
+- **Superposition**: Quantum bits (qubits) exist in multiple states simultaneously, unlike classical bits that are either 0 or 1
+- **Entanglement**: Qubits become interconnected with instantaneous state correlations
+- **Interference**: Quantum states can be manipulated to amplify correct answers
+- **Decoherence**: The fragile nature of quantum states that requires extreme environmental control
+
+These principles enable quantum computers to process vast amounts of information in parallel, providing exponential computational advantages for specific problem types.
+
+## Current Market Status
+The quantum computing industry achieved a significant milestone in 2023 with IBM demonstrating "quantum utility" - practical quantum advantage in real-world applications. This marks the transition from experimental research to early commercial viability.
+
+Industry projections estimate the quantum computing market could reach $450-850 billion by 2035, reflecting substantial growth potential despite current technological limitations.
+
+## Practical Applications
+Quantum computers excel in specialized areas including:
+- **Molecular simulation** for materials science and chemistry
+- **Drug discovery** through complex biological modeling  
+- **Financial modeling** for risk analysis and optimization
+- **Cryptography** and security applications
+
+## Technical Challenges
+Current quantum computers require extreme engineering conditions:
+- Operation near absolute zero temperatures
+- Superconducting materials and specialized hardware
+- Sophisticated error correction systems
+- Isolation from environmental interference
+
+These requirements make quantum systems complex, expensive, and currently unsuitable for general-purpose computing tasks.
+
+## Key Finding
+Quantum computers are specialized problem-solving machines designed to complement, not replace, classical computers. They represent a fundamental shift in computational approach rather than simply faster traditional computing.
+
+**Source**: Analysis based on IBM quantum computing research and industry reports (Reliability: 9/10)Report creation complete
+```
+
+在以上结果中可以看出，用户输入触发了一整个Workflow流程，其中一共有三个Agent被编排，分别是research agent、fact_check agent、report agent。与Swarm模式和Graph模式这两种交互方式所有不同，Workflow模式的起始点是直接注入第一个Agent的，而不需要先构建一个接受人类input的对话agent。由此看到Workflow是精确编排好了的流程，最后对人类的交互反馈集中在编写输出报告的report agent上。
+
+至此，Workflow模式运行成功。
+
 ## 五、小结-设计思路
+
+以上三种模式的Agent交互方式各有特点，适用于不同的场景。
 
 ## 六、参考资料
 
