@@ -1,4 +1,4 @@
-# Strands Agents SDK Getting Started 中篇 - 构建 Agent & Agent as Tool
+# Strands Agents Getting Started 中篇 - 构建 Agent & Agent as Tool
 
 上一篇介绍了使用Strands Agents构建MCP之后，本篇进入A2A话题。
 

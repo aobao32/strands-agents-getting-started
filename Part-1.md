@@ -1,4 +1,4 @@
-# Strands Agents SDK Getting Started 上篇 - Tool use & 构建MCP Server
+# Strands Agents Getting Started 上篇 - Tool use & 构建MCP Server
 
 ## 一、背景
 

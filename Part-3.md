@@ -1,4 +1,4 @@
-# Strands Agents 下篇 - Multi-Agent A2A
+# Strands Agents Getting Started 下篇 - Multi-Agent A2A
 
 在上一篇文章中，我们介绍了如何使用Strands Agents SDK构建一个简单的A2A Server和Client进行通信，本篇讲构建Swarm、Graph和Workflow三种形式的A2A应用。
 
