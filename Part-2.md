@@ -175,7 +175,7 @@ asyncio.run(send_streaming_message("what is 101 * 11"))
 ```shell
 source .venv/bin/activate
 uv pip install 'strands-agents-tools[a2a_client]'
-python client-agent.py
+uv run client-agent.py
 ```
 
 运行后返回Streaming方式的输出，因为返回内容量较大，且streaming方式是分片的，这里就不再粘贴完整返回内容给了。片段如下：
@@ -268,7 +268,7 @@ asyncio.run(main())
 
 ```shell
 source .venv/bin/activate
-python client-agent.py
+uv run client-agent.py
 ```
 
 运行后返回结果如下：

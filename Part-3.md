@@ -1,4 +1,4 @@
-# Strands Agents Getting Started 下篇 - Multi-Agent A2A
+# Strands Agents Getting Started 下篇 - Multi-Agent & A2A
 
 在上一篇文章中，我们介绍了如何使用Strands Agents SDK构建一个简单的A2A Server和Client进行通信，本篇讲构建Swarm、Graph和Workflow三种形式的A2A应用。
 
@@ -95,7 +95,7 @@ print(f"Execution time: {result.execution_time}ms")
 print(f"Token usage: {result.accumulated_usage}")
 ```
 
-运行后可以看到返回结果中，节选部分Agent交互的记录如下：
+运行`uv run swarm.py`，可以看到返回结果中，节选部分Agent交互的记录如下：
 
 ```shell
 I'll help you design and implement a simple REST API for a todo app. Since this involves both architectural design and coding implementation, I'll hand this off to the architect first to create a solid design foundation.
@@ -122,7 +122,7 @@ DEBUG | strands.multiagent.swarm | from_node=<architect>, to_node=<coder> | hand
 The architecture design is complete! I've provided a comprehensive system design that includes:
 ```
 
-接着Coder Agenet会继续执行：
+接着Coder Agent会继续执行：
 
 ```shell
 he coder willDEBUG | strands.multiagent.swarm | node=<architect> | node execution completed
@@ -229,13 +229,12 @@ print(f"Execution order: {[node.node_id for node in result.execution_order]}")
 执行代码。
 
 ```shell
-python graph.py
+uv run graph.py
 ```
 
 执行代码后，可看到如下日志输出，标识从research作为执行入口开始执行。
 
 ```shell
-$ python graph.py 
 DEBUG | strands.multiagent.graph | task=<Research the impact of AI on healthcare and create a comprehensive report> | starting graph execution
 DEBUG | strands.multiagent.graph | max_node_executions=<None>, execution_timeout=<600>s, node_timeout=<None>s | graph execution config
 DEBUG | strands.multiagent.graph | node_id=<research> | executing node
@@ -452,7 +451,7 @@ if __name__ == "__main__":
 运行这个脚本。
 
 ```shell
-python workflow.py
+uv run workflow.py
 ```
 
 注意：首次运行这个代码，可能会看到运行中提示npm升级软件包的提示，这是因为Strands Agents调用了`http_request`这个tool来链接外部互联网，而这个tool是nodejs开发的，因此第一次运行会自动安装对应的库文件，console上可能会提示有npm软件包被安装。

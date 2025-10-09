@@ -92,7 +92,7 @@ agent("What is the square root of 1764")
 运行代码：
 
 ```shell
-python internal-tool.py
+uv run internal-tool.py
 ```
 
 获得结果如下：
@@ -168,7 +168,7 @@ with domain_name_tools:
     naming_agent("I need to name an open source project for building AI agents.")
 ```
 
-运行这段代码`python external-tool.py`，这个AI Agent将会为您选择5个域名，然后查询其是否被注册（fastdomaincheck-mcp-server这个MCP Server是通过whois查询），然后再查找下一批。如此Agent会多次调用MCP Server和LLM模型，直到满足5个可用的条件位置。
+运行这段代码`uv run external-tool.py`，这个AI Agent将会为您选择5个域名，然后查询其是否被注册（fastdomaincheck-mcp-server这个MCP Server是通过whois查询），然后再查找下一批。如此Agent会多次调用MCP Server和LLM模型，直到满足5个可用的条件位置。
 
 由此案例可以看到，Strands Agents大大降低了开发难度，Agent可快速与模型和外部工具交互，满足业务要求。
 
@@ -241,7 +241,7 @@ with stdio_mcp_client:
 执行如下命令运行：
 
 ```shell
-python mcp-client-stdio.py
+uv run mcp-client-stdio.py
 ```
 
 运行后，代码返回：
@@ -292,7 +292,7 @@ Tool #1: get_forecast
 执行如下命令运行代码：
 
 ```shell
-python mcp-server-http.py
+uv run mcp-server-http.py
 ```
 
 此时可看到程序监听在本机的8002端口。
@@ -344,7 +344,7 @@ with myhttp_mcp_client:
 
 ```shell
 source .venv/bin/activate
-python mcp-client-http.py
+uv run mcp-client-http.py
 ```
 
 即可看到本Agent正常访问了MCP Server，完成了交互逻辑。如果将控制台窗口切换到刚才启动MCP Server的命令行窗口中，还可以看到如下日志：
